@@ -10,6 +10,17 @@ import {filterImageFromURL, deleteLocalFiles} from './util/util';
   // Set the network port
   const port = process.env.PORT || 8082;
   
+  function checkHttpUrl(string: any) {
+    let givenURL;
+    try {
+        givenURL = new URL(string);
+    } catch (error) {
+        console.log("error is",error)
+      return false;  
+    }
+    return givenURL.protocol === "http:" || givenURL.protocol === "https:";
+  }
+  
   // Use the body parser middleware for post requests
   app.use(bodyParser.json());
 
@@ -36,23 +47,14 @@ import {filterImageFromURL, deleteLocalFiles} from './util/util';
   app.get( "/", async ( req, res ) => {
     res.send("try GET /filteredimage?image_url={{}}" + req.params)
   } );
-  const isValidUrl = urlString=> {
-		let url;
-		try { 
-	      	url =new URL(urlString); 
-	    }
-	    catch(e){ 
-	      return false; 
-	    }
-	    return url.protocol === "http:" || url.protocol === "https:";
-	}
+  
   app.get( "/filteredimage", async(req:express.Request, res:express.Response) => {
-    let {image_url} = req.query;
+    const image_url = req.query.image_url.toString();
     if (!image_url){
-      res.status(400).send('Error: URL is empty');
-    } else if (!isValidUrl(image_url)) {
-		res.status(400).send('Error: Wrong format URL');
-	} else {
+      res.status(400).send('Error: Image URL is required');
+    } else if (!checkHttpUrl(image_url)) {
+      res.status(400).send('Error: Wrong format URL');
+    } else {
       await filterImageFromURL(image_url).then( function (image_filtered_path){
         res.sendFile(image_filtered_path, () => {       
           deleteLocalFiles([image_filtered_path]);       
